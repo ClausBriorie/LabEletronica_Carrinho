@@ -74,7 +74,7 @@ int main() {
 
             // ...read the data into the receive buffer
             rxDataCnt = my_nrf24l01p.read( NRF24L01P_PIPE_P0, rxData, sizeof( rxData ) );
-            if (rxData[3] == 'p')
+            if (rxData[3] == 'p') {
 
                 myled2 = !myled2;
             }
