@@ -29,23 +29,22 @@ void setup_transceiver(nRF24L01P my_nrf24l01p) {
 }
 
 // TODO: Test me
-void transmitir_do_PC(char txData[TRANSFER_SIZE], int txDataCnt) {
-    if (txDataCnt >= sizeof(txData)) {
+int transmitir_do_PC(char txData[], int txDataCnt) {
+    if (txDataCnt >= TRANSFER_SIZE) {
        // ...enviamos seu conteúdo via nRF24L01+
        my_nrf24l01p.write(NRF24L01P_PIPE_P0, txData, txDataCnt);
        txDataCnt = 0;
     }
+    return txDataCnt;
 }
 
-// TODO: Test me
-void print_no_PC(char msg[TRANSFER_SIZE], int msgCnt) {
+void print_no_PC(char msg[], int msgCnt) {
     for (int i = 0; msgCnt > 0; msgCnt--, i++) {
         pc.putc(msg[i]);
     }
 }
 
-// TODO: Test me
-void interpretar_msg(char msg[TRANSFER_SIZE]) {
+void interpretar_msg(char msg[]) {
     // Açao 'a'
     if ((msg[0] == 'a')) {
         led_green = 0;
@@ -82,13 +81,13 @@ int main() {
         if (pc.readable()) {
             // le dado e transfere para buffer tx
             txData[txDataCnt++] = pc.getc();
-            transmitir_do_PC(txData, txDataCnt);
+            txDataCnt = transmitir_do_PC(txData, txDataCnt);
         }
 
         if (my_nrf24l01p.readable()) {
             // le dado e transfere para buffer rx
             rxDataCnt = my_nrf24l01p.read(NRF24L01P_PIPE_P0, rxData, sizeof(rxData));
-            interpretar_acao();
+            interpretar_msg(rxData);
             print_no_PC(rxData, rxDataCnt);
         }
     }
