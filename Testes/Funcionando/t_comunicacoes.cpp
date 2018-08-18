@@ -28,10 +28,9 @@ void setup_transceiver(nRF24L01P my_nrf24l01p) {
     my_nrf24l01p.enable();
 }
 
-// TODO: Test me
 int transmitir_do_PC(char txData[], int txDataCnt) {
+    // Retorna o ponteiro de posição do buffer de transmissão
     if (txDataCnt >= TRANSFER_SIZE) {
-       // ...enviamos seu conteúdo via nRF24L01+
        my_nrf24l01p.write(NRF24L01P_PIPE_P0, txData, txDataCnt);
        txDataCnt = 0;
     }

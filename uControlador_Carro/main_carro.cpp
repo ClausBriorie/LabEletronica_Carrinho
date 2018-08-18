@@ -1,8 +1,6 @@
-/*
-Programa que coordena os dois motores
-a partir de comandos enviados de um computador
-*/
 #include "mbed.h"
+#include "nRF24L01P.h"
+#define TAMANHO_MSG  2
 #define FRENTE 1
 #define RE -1
 #define ESQ 4
@@ -12,16 +10,24 @@ a partir de comandos enviados de um computador
 #define DEVAG 0.2
 #define TAMANHO_MSG  2
 
+nRF24L01P transceiver(PTD2, PTD3, PTC5, PTD0, PTD5, PTA13);    // mosi, miso, sck, csn, ce, irq
+
 Serial pc(USBTX, USBRX); // tx, rx
 
-DigitalOut led_green(LED1);
-DigitalOut led_red(LED2);
-
+// Controle de motores
 PwmOut motor_E_1(PTB0);
 PwmOut motor_E_2(PTB1);
 PwmOut motor_D_1(PTB2);
 PwmOut motor_D_2(PTB3);
 
+// Encoders
+Timer t_esq;
+InterruptIn encoder_esq(PTD7);
+volatile int furos_esq = 0;
+
+int t_anterior = 0;
+
+/* ----- FUNÇÕES DE MOTORES E MOVIMENTAÇÃO ----- */
 void setup_motores() {
     motor_E_1.period_ms(20); motor_E_1 = 0.0;
     motor_E_2.period_ms(20); motor_E_2 = 0.0;
@@ -57,10 +63,31 @@ void frear_motor(int id_motor) {
     }
 }
 
+/* ----- FUNÇÕES DE ENCODERS ----- */
+void cont_furos_esq() {
+    encoder_esq.disable_irq();
+    t_esq.stop();
+    int t_atual;
+    int delta_t;
+    int limiar_debouncing = 10; // milissegundos
+
+    t_atual = t_esq.read_ms();
+    delta_t = t_atual - t_anterior;
+
+    furos_esq++;
+    // if (delta_t > limiar_debouncing) {
+    //
+    // }
+    t_esq.reset();
+    t_esq.start();
+    encoder_esq.enable_irq();
+}
+
+/* ----- FUNÇÕES DE COMUNICAÇÃO ----- */
 void interpretar_msg(char msg[]) {
     // Acionamento do motor esquerdo para a frente
     if (msg[0] == 'a') {
-        acionar_motor(ESQ, FRENTE, MEDIO);
+        acionar_motor(ESQ, FRENTE, DEVAG);
         wait(0.5);
         frear_motor(ESQ);
         wait(0.1);
@@ -91,27 +118,37 @@ void interpretar_msg(char msg[]) {
     }
 }
 
+// TODO: verificar se argumento é necessário
+void setup_transceiver(nRF24L01P transceiver) {
+    transceiver.powerUp();
+    transceiver.setRxAddress(0xE5E5E5E5E5);
+    transceiver.setRfFrequency(2448);
+    transceiver.setTxAddress(0xE5E5E5E5E5);
+    transceiver.setTransferSize(TAMANHO_MSG);
+    transceiver.setReceiveMode();
+    transceiver.enable();
+}
+
 int main() {
-    char msg[TAMANHO_MSG];
-    int counter_msg = 0;
+    char rxData[TAMANHO_MSG];
+    int rxDataCnt = 0;
 
-    // LEDs iniciam desligados
-    led_green = 1;
-    led_red = 1;
-
+    setup_transceiver(transceiver);
     setup_motores();
 
-    while (1) {
-        if (pc.readable()) {
-            msg[counter_msg++] = pc.getc();
-            interpretar_msg(msg);
-            for (int i = 0; counter_msg > 0; counter_msg--, i++ ) {
-                pc.putc(msg[i]);
-            }
+    // Inicializando timers para interrupções
+    t_esq.start();
+    encoder_esq.enable_irq();
+    encoder_esq.rise(&cont_furos_esq);
 
-            if (counter_msg >= sizeof(msg)) {
-                counter_msg = 0;
-            }
+    while (1) {
+        pc.printf("furos: %d\n", furos_esq);
+        if (transceiver.readable()) {
+            encoder_esq.rise(&cont_furos_esq);
+
+            // le dado e transfere para buffer rx
+            rxDataCnt = transceiver.read(NRF24L01P_PIPE_P0, rxData, sizeof(rxData));
+            interpretar_msg(rxData);
         }
     }
 }
