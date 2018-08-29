@@ -213,12 +213,16 @@ void inicia_calc_dist() {
     echo.enable_irq();
 }
 
+void mostra_distancia() {
+    pc.printf("distancia: %.2f  [cm]\n", distancia);
+}
+
 void finaliza_calc_dist() {
     echo.disable_irq();
     t_ultrassom.stop();
     delta_ultrassom = t_ultrassom.read_us();
     distancia = delta_ultrassom/58.0;
-    // mostra_delta();
+    mostra_distancia();
     t_ultrassom.reset();
     echo.enable_irq();
 }
@@ -235,20 +239,29 @@ void dispara_trigger() {
 int main() {
     char rxData[TAMANHO_MSG];
     int rxDataCnt = 0;
-    t_cont_dir.attach(&print_cont_dir, 0.5);
-    t_cont_esq.attach(&print_cont_esq, 0.5);
 
+    // ultrassom
+    t_trigger.attach(&dispara_trigger, 0.25);
+    echo.enable_irq();
+    echo.rise(inicia_calc_dist);
+    echo.fall(finaliza_calc_dist);
+    trigger = 0;
 
     setup_transceiver(transceiver);
     setup_motores();
 
+    // encoder
+    t_cont_dir.attach(&print_cont_dir, 0.5);
+    t_cont_esq.attach(&print_cont_esq, 0.5);
     encoder_esq.enable_irq();
     encoder_esq.rise(&cont_furos_esq);
-
     encoder_dir.enable_irq();
     encoder_dir.rise(&cont_furos_dir);
 
     while (1) {
+        if (distancia <= 20.0) {
+            interpretar_msg("jj");
+        }
         if (transceiver.readable()) {
             // le dado e transfere para buffer rx
             rxDataCnt = transceiver.read(NRF24L01P_PIPE_P0, rxData, sizeof(rxData));
