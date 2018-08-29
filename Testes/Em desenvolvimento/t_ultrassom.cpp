@@ -4,12 +4,12 @@ Código para testar o funcionamento do sensor de distancia
 #include "mbed.h"
 
 Serial pc(USBTX, USBRX); // tx, rx
-// PwmOut trigger(PTA4);
 DigitalOut trigger(PTA4);
 InterruptIn echo(PTA5);
 Timer t_ultrassom;
 int delta_ultrassom;
 int delta_ant;
+float distancia;
 Ticker t_print;
 Ticker t_trigger;
 
@@ -22,7 +22,6 @@ void inicia_calc_dist() {
 }
 
 void mostra_delta() {
-    float distancia = delta_ultrassom/58.0;
     pc.printf("Distancia: %.2f\n", distancia);
 }
 
@@ -30,7 +29,8 @@ void finaliza_calc_dist() {
     echo.disable_irq();
     t_ultrassom.stop();
     delta_ultrassom = t_ultrassom.read_us();
-    mostra_delta();
+    distancia = delta_ultrassom/58.0;
+    // mostra_delta();
     t_ultrassom.reset();
     echo.enable_irq();
 }
