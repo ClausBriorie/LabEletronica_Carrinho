@@ -1,6 +1,6 @@
 #include "mbed.h"
 #include "nRF24L01P.h"
-#define TAMANHO_MSG  2
+#define TAMANHO_MSG  4
 
 Serial pc(USBTX, USBRX); // tx, rx
 nRF24L01P transceiver(PTD2, PTD3, PTC5, PTD0, PTD5, PTA13);    // mosi, miso, sck, csn, ce, irq
