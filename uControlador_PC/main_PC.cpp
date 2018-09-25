@@ -1,9 +1,14 @@
 #include "mbed.h"
 #include "nRF24L01P.h"
-#define TAMANHO_MSG  4
+#define TAMANHO_MSG  6
 
 Serial pc(USBTX, USBRX); // tx, rx
 nRF24L01P transceiver(PTD2, PTD3, PTC5, PTD0, PTD5, PTA13);    // mosi, miso, sck, csn, ce, irq
+
+// Teste com PWM
+PwmOut motor_D_PWM(PTB2);   //   aka MOTOR A - ENA - FIO ROXO
+PwmOut motor_E_PWM(PTB1);   //   aka MOTOR B - ENB - FIO PRETO  OK
+
 
 void setup_transceiver(nRF24L01P transceiver) {
     transceiver.powerUp();
@@ -41,6 +46,9 @@ void print_no_PC(char msg[], int msgCnt) {
 int main() {
     char txData[TAMANHO_MSG];
     int txDataCnt = 0;
+
+    motor_D_PWM.period(0.01); motor_D_PWM = 0.5;
+    motor_E_PWM.period(0.01); motor_E_PWM = 0.5;
 
     setup_transceiver(transceiver);
 
